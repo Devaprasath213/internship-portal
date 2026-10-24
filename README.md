@@ -44,3 +44,11 @@ Covers: valid/optional-field submissions (201), missing name, bad email, unsafe 
 
 ## Short explanation
 The server is the source of truth: every field is re-validated server-side, SQL uses bound parameters only, writes are rate limited, and Helmet sets secure headers (the strict CSP is why all JS/CSS live in separate files). See [SECURITY.md](SECURITY.md) for the full checklist.
+
+
+## Screenshots
+
+![Internship list](screenshots/01-list.png)
+![Successful application](screenshots/02-success.png)
+![Duplicate rejected](screenshots/03-duplicate-error.png)
+![Error state with retry](screenshots/04-load-error-retry.png)
