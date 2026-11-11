@@ -2,13 +2,44 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const crypto = require('crypto');
 const { validateApplication } = require('./validate');
 
 function createApp(db, opts = {}) {
   const app = express();
+
+  // Request logging: method, path, status, duration only. Never bodies or personal data.
+  app.use((req, res, next) => {
+    const id = crypto.randomUUID();
+    const start = Date.now();
+    res.setHeader('X-Request-Id', id);
+    res.on('finish', () => {
+      if (opts.quiet) return;
+      console.log(JSON.stringify({
+        time: new Date().toISOString(),
+        id,
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        ms: Date.now() - start
+      }));
+    });
+    next();
+  });
+
   app.disable('x-powered-by');
   app.use(helmet());                         // CSP, nosniff, frameguard, HSTS, etc.
   app.use(express.json({ limit: '10kb' }));  // reject oversized bodies
+
+  // Health check: confirms the server is up and the database responds.
+  app.get('/health', (req, res) => {
+    try {
+      db.prepare('SELECT 1').get();
+      res.json({ status: 'ok', uptime: Math.round(process.uptime()), db: 'connected' });
+    } catch (err) {
+      res.status(503).json({ status: 'error', db: 'unavailable' });
+    }
+  });
 
   // General API limit + stricter limit on the write endpoint.
   const apiLimiter = rateLimit({
